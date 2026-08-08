@@ -214,7 +214,7 @@
           button.type = "button";
           button.className = `task${isComplete ? " done" : ""}`;
           button.setAttribute("aria-pressed", String(isComplete));
-          button.innerHTML = `<span class="check" aria-hidden="true">${isComplete ? "✓" : ""}</span><span class="task-copy"><span class="task-title"><strong>${task.id}.</strong> ${formatTaskText(task.text)}</span></span><span class="task-points${task.points ? "" : " zero"}">${task.points ? `+${task.points} LP` : "No LP listed"}</span>`;
+          button.innerHTML = `<span class="check" aria-hidden="true">${isComplete ? "✓" : ""}</span><span class="task-copy"><span class="task-title">${formatTaskText(task.text)}</span></span><span class="task-points${task.points ? "" : " zero"}">${task.points ? `+${task.points} LP` : "No LP listed"}</span>`;
           button.addEventListener("click", () => {
             completed.has(task.id) ? completed.delete(task.id) : completed.add(task.id);
             saveProgress();
