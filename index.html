@@ -172,7 +172,9 @@
       }
 
       function formatTaskText(text) {
-        const escaped = text.replace(/[&<>"']/g, (character) => ({
+        // Hide League task-reference IDs while retaining meaningful coordinates and prose.
+        const withoutTaskIds = text.replace(/\s*\((?:\d{1,3}(?:\s*[–-]\s*\d{1,3})?)(?:\s*,\s*\d{1,3}(?:\s*[–-]\s*\d{1,3})?)*\)/g, "");
+        const escaped = withoutTaskIds.replace(/[&<>"']/g, (character) => ({
           "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
         })[character]);
         return escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
