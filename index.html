@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="An interactive Equilibrium League route tracker." />
+    <title>Equilibrium League Route Tracker</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #f8f5eb;
+        --muted: #b6c0b5;
+        --paper: #18241f;
+        --paper-raised: #213129;
+        --line: rgba(226, 203, 137, 0.18);
+        --gold: #f0c759;
+        --gold-deep: #b97920;
+        --teal: #75d7bf;
+        --completed: #77c68b;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        min-width: 320px;
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at 75% -10%, rgba(75, 139, 112, 0.3), transparent 34rem),
+          linear-gradient(125deg, #0b120f 0%, #111c17 48%, #101610 100%);
+      }
+
+      .site-shell { max-width: 1180px; margin: 0 auto; padding: 40px 24px 80px; }
+      .side-nav { position: fixed; inset: 18px auto 18px 18px; z-index: 10; display: flex; width: 210px; flex-direction: column; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: rgba(14, 24, 19, .95); box-shadow: 0 16px 42px rgba(0,0,0,.28); backdrop-filter: blur(15px); }
+      .side-nav__brand { margin-bottom: 26px; color: var(--gold); font-family: Georgia, "Times New Roman", serif; font-size: 1.1rem; font-weight: 700; text-decoration: none; }
+      .side-nav__label { margin: 0 0 8px; color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      .side-nav a:not(.side-nav__brand) { display: block; margin: 2px 0; padding: 10px; border-radius: 9px; color: var(--muted); font-size: .9rem; font-weight: 700; text-decoration: none; }
+      .side-nav a:not(.side-nav__brand):hover, .side-nav a.active { color: var(--ink); background: rgba(240,199,89,.13); }
+      @media (min-width: 1260px) { .site-shell { margin-left: 258px; margin-right: 42px; } }
+      .hero { padding: 28px 0 36px; }
+      .eyebrow { margin: 0 0 10px; color: var(--gold); font-size: .76rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+      h1 { max-width: 720px; margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.45rem, 7vw, 5.25rem); line-height: .96; letter-spacing: -.055em; }
+      .intro { max-width: 650px; margin: 18px 0 0; color: var(--muted); font-size: 1.05rem; line-height: 1.65; }
+
+      .progress-dock {
+        position: sticky;
+        top: 16px;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin: 0 0 30px;
+      }
+      .stat-card {
+        min-height: 150px;
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(24, 36, 31, .94);
+        box-shadow: 0 14px 38px rgba(0, 0, 0, .22);
+        backdrop-filter: blur(15px);
+      }
+      .stat-card.relic { background: linear-gradient(135deg, rgba(97, 78, 29, .96), rgba(29, 44, 37, .96)); }
+      .stat-label { margin: 0; color: var(--muted); font-size: .75rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+      .stat-number { margin: 8px 0 0; color: var(--gold); font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem, 5vw, 3.45rem); font-weight: 700; line-height: 1; }
+      .stat-detail { margin: 9px 0 0; color: var(--muted); font-size: .92rem; }
+      .meter { height: 6px; margin-top: 18px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.11); }
+      .meter > span { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gold-deep), var(--gold)); transition: width .35s ease; }
+
+      .route-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 14px; }
+      h2 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 1.65rem; }
+      #task-count { margin: 0; color: var(--muted); font-size: .92rem; white-space: nowrap; }
+      .task-list { display: grid; gap: 10px; }
+      .task {
+        position: relative;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 15px;
+        align-items: center;
+        width: 100%;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        color: var(--ink);
+        text-align: left;
+        font: inherit;
+        cursor: pointer;
+        background: rgba(33, 49, 41, .72);
+        transition: transform .18s ease, border-color .18s ease, background .18s ease;
+      }
+      .task:hover { transform: translateY(-2px); border-color: rgba(240, 199, 89, .52); background: rgba(42, 61, 51, .88); }
+      .task:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
+      .task.done { border-color: rgba(119, 198, 139, .34); background: rgba(31, 64, 45, .7); }
+      .check { display: grid; width: 24px; height: 24px; place-items: center; border: 2px solid #82988b; border-radius: 50%; color: #112218; font-size: .85rem; font-weight: 900; }
+      .done .check { border-color: var(--completed); background: var(--completed); }
+      .task-copy { min-width: 0; line-height: 1.45; }
+      .task-title { font-weight: 650; }
+      .done .task-title { color: #a9c7b0; text-decoration: line-through; text-decoration-thickness: 1px; }
+      .task-points { padding: 5px 8px; border-radius: 7px; color: var(--gold); background: rgba(240, 199, 89, .11); font-size: .79rem; font-weight: 800; white-space: nowrap; }
+      .task-points.zero { color: var(--muted); background: rgba(255,255,255,.06); }
+      .empty { padding: 36px; border: 1px dashed var(--line); border-radius: 16px; color: var(--muted); text-align: center; }
+      .reset { margin-top: 25px; padding: 0; border: 0; color: var(--muted); font: inherit; text-decoration: underline; cursor: pointer; background: transparent; }
+      .reset:hover { color: var(--ink); }
+
+      @media (max-width: 620px) {
+        .site-shell { padding: 26px 16px 60px; }
+        .hero { padding: 16px 0 27px; }
+        .progress-dock { top: 8px; gap: 8px; margin-bottom: 24px; }
+        .stat-card { min-height: 135px; padding: 16px; border-radius: 15px; }
+        .stat-detail { font-size: .8rem; }
+        .task { grid-template-columns: auto minmax(0, 1fr); gap: 12px; padding: 15px; }
+        .task-points { grid-column: 2; justify-self: start; }
+      }
+      @media (max-width: 1259px) { .side-nav { position: static; width: auto; margin: 16px; flex-direction: row; flex-wrap: wrap; gap: 4px; } .side-nav__brand { width: 100%; margin-bottom: 6px; } .side-nav__label { display: none; } }
+    </style>
+    <script defer src="page-overviews.js"></script>
+    <style>.side-nav{inset:18px auto auto 18px;height:auto}</style>
+  </head>
+  <body>
+    <nav class="side-nav" aria-label="Primary navigation"><a class="side-nav__brand" href="home.html">Equilibrium</a><p class="side-nav__label">Tool menu</p><a class="active" href="index.html">Route</a><a href="planner.html">Relic &amp; Blessing Planner</a><a href="area-guide.html">Area Guide</a><a href="create-build.html">Create Build</a></nav>
+    <main class="site-shell">
+      <header class="hero">
+        <p class="eyebrow">Your adventure, mapped</p>
+        <h1>Equilibrium League route tracker</h1>
+        <p class="intro">Work through the route at your own pace. Click any step as you finish it—your League Points and relic progress update instantly and are saved on this device.</p>
+        <p><a href="planner.html" style="color: var(--gold); font-weight: 800;">Plan your relics &amp; blessings →</a></p>
+      </header>
+
+      <section class="progress-dock" aria-label="Progress summary">
+        <article class="stat-card">
+          <p class="stat-label">League points earned</p>
+          <p class="stat-number" id="points-earned">0</p>
+          <p class="stat-detail" id="points-detail">0 tasks complete</p>
+        </article>
+        <article class="stat-card relic">
+          <p class="stat-label" id="relic-label">Next relic tier</p>
+          <p class="stat-number" id="points-remaining">500 LP</p>
+          <p class="stat-detail" id="relic-detail">500 LP needed for Tier 1</p>
+          <div class="meter" aria-hidden="true"><span id="relic-meter"></span></div>
+        </article>
+      </section>
+
+      <section aria-labelledby="route-title">
+        <div class="route-heading">
+          <h2 id="route-title">Route steps</h2>
+          <p id="task-count">Loading route…</p>
+        </div>
+        <div class="task-list" id="task-list" aria-live="polite"></div>
+        <button class="reset" id="reset-progress" type="button">Reset all progress</button>
+      </section>
+    </main>
+
+    <script>
+      const RELIC_TIERS = [10, 750, 1_750, 3_500, 6_000, 12_000, 20_000];
+      const STORAGE_KEY = "equilibrium-route-completed-v1";
+      const taskList = document.querySelector("#task-list");
+      const completed = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"));
+      let tasks = [];
+
+      function parseRoute(markdown) {
+        return [...markdown.matchAll(/^(\d+)\.\s+([\s\S]*?)(?=^\d+\.\s+|^##\s|\n*$)/gm)].map((match) => {
+          const id = Number(match[1]);
+          const text = match[2].replace(/\n+/g, " ").trim();
+          const points = Number(text.match(/\(\+(\d+)\s+LP;/)?.[1] || 0);
+          return { id, text, points };
+        });
+      }
+
+      function saveProgress() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([...completed]));
+      }
+
+      function formatTaskText(text) {
+        const escaped = text.replace(/[&<>"']/g, (character) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+        })[character]);
+        return escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      }
+
+      function updateSummary() {
+        const earned = tasks.filter((task) => completed.has(task.id)).reduce((total, task) => total + task.points, 0);
+        const nextIndex = RELIC_TIERS.findIndex((tier) => earned < tier);
+        const nextTier = nextIndex === -1 ? null : RELIC_TIERS[nextIndex];
+        document.querySelector("#points-earned").textContent = earned.toLocaleString();
+        document.querySelector("#points-detail").textContent = `${completed.size} of ${tasks.length} tasks complete`;
+
+        if (nextTier === null) {
+          document.querySelector("#relic-label").textContent = "Relic progress";
+          document.querySelector("#points-remaining").textContent = "Max tier";
+          document.querySelector("#relic-detail").textContent = "Every configured relic tier reached";
+          document.querySelector("#relic-meter").style.width = "100%";
+          return;
+        }
+
+        const previousTier = nextIndex === 0 ? 0 : RELIC_TIERS[nextIndex - 1];
+        const remaining = nextTier - earned;
+        const progress = ((earned - previousTier) / (nextTier - previousTier)) * 100;
+        document.querySelector("#relic-label").textContent = "Points to next relic tier";
+        document.querySelector("#points-remaining").textContent = `${remaining.toLocaleString()} LP`;
+        document.querySelector("#relic-detail").textContent = `${remaining.toLocaleString()} LP needed for Tier ${nextIndex + 1}`;
+        document.querySelector("#relic-meter").style.width = `${Math.max(0, Math.min(100, progress))}%`;
+      }
+
+      function renderTasks() {
+        taskList.innerHTML = "";
+        if (!tasks.length) {
+          taskList.innerHTML = '<p class="empty">The route could not be loaded. Please run this site from a local web server.</p>';
+          return;
+        }
+        tasks.forEach((task) => {
+          const isComplete = completed.has(task.id);
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `task${isComplete ? " done" : ""}`;
+          button.setAttribute("aria-pressed", String(isComplete));
+          button.innerHTML = `<span class="check" aria-hidden="true">${isComplete ? "✓" : ""}</span><span class="task-copy"><span class="task-title"><strong>${task.id}.</strong> ${formatTaskText(task.text)}</span></span><span class="task-points${task.points ? "" : " zero"}">${task.points ? `+${task.points} LP` : "No LP listed"}</span>`;
+          button.addEventListener("click", () => {
+            completed.has(task.id) ? completed.delete(task.id) : completed.add(task.id);
+            saveProgress();
+            renderTasks();
+            updateSummary();
+          });
+          taskList.append(button);
+        });
+        document.querySelector("#task-count").textContent = `${tasks.length} route steps`;
+      }
+
+      document.querySelector("#reset-progress").addEventListener("click", () => {
+        if (completed.size && confirm("Reset all completed tasks?")) {
+          completed.clear();
+          saveProgress();
+          renderTasks();
+          updateSummary();
+        }
+      });
+
+      fetch("equilibrium-efficient-route.md")
+        .then((response) => {
+          if (!response.ok) throw new Error("Route file unavailable");
+          return response.text();
+        })
+        .then((markdown) => {
+          tasks = parseRoute(markdown);
+          renderTasks();
+          updateSummary();
+        })
+        .catch(() => renderTasks());
+    </script>
+  </body>
+</html>
